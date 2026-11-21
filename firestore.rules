@@ -1,0 +1,199 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerifiedUser() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidDateKey(val) {
+      return val is string && val.size() == 10 && val.matches('^\\d{4}-\\d{2}-\\d{2}$');
+    }
+
+    function isValidJournalSettings(data, userId) {
+      return data.keys().hasAll(['ownerId', 'journalName', 'initialCapitalIdr', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'journalName', 'initialCapitalIdr', 'createdAt', 'updatedAt'])
+        && data.ownerId is string
+        && data.ownerId == userId
+        && data.journalName is string
+        && data.journalName.size() >= 1
+        && data.journalName.size() <= 40
+        && (data.initialCapitalIdr is int || data.initialCapitalIdr is float)
+        && data.initialCapitalIdr > 0
+        && data.initialCapitalIdr <= 1000000000000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTradeEntry(data, userId) {
+      return data.keys().hasAll([
+          'ownerId',
+          'dateKey',
+          'session',
+          'dateLabel',
+          'pair',
+          'position',
+          'method',
+          'riskPercent',
+          'outcome',
+          'pnlIdr',
+          'note',
+          'clientCreatedAt',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId',
+          'dateKey',
+          'session',
+          'dateLabel',
+          'pair',
+          'position',
+          'method',
+          'riskPercent',
+          'outcome',
+          'pnlIdr',
+          'note',
+          'clientCreatedAt',
+          'createdAt'
+        ])
+        && data.ownerId is string
+        && data.ownerId == userId
+        && isValidDateKey(data.dateKey)
+        && data.session is string
+        && data.session in ['Asia', 'London', 'New York']
+        && data.dateLabel is string
+        && data.dateLabel.size() >= 1
+        && data.dateLabel.size() <= 30
+        && data.pair is string
+        && data.pair.size() >= 1
+        && data.pair.size() <= 20
+        && data.position is string
+        && data.position in ['Buy', 'Sell']
+        && data.method is string
+        && data.method.size() >= 1
+        && data.method.size() <= 80
+        && (data.riskPercent is int || data.riskPercent is float)
+        && data.riskPercent > 0
+        && data.riskPercent <= 100
+        && data.outcome is string
+        && data.outcome in ['Win', 'Loss', 'BE']
+        && (data.pnlIdr is int || data.pnlIdr is float)
+        && data.pnlIdr >= -1000000000000
+        && data.pnlIdr <= 1000000000000
+        && data.note is string
+        && data.note.size() <= 500
+        && data.clientCreatedAt is string
+        && data.clientCreatedAt.size() >= 1
+        && data.clientCreatedAt.size() <= 40
+        && data.createdAt is timestamp;
+    }
+
+    function isValidCashflowEntry(data, userId) {
+      return data.keys().hasAll([
+          'ownerId',
+          'dateKey',
+          'dateLabel',
+          'type',
+          'amountIdr',
+          'note',
+          'clientCreatedAt',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId',
+          'dateKey',
+          'dateLabel',
+          'type',
+          'amountIdr',
+          'note',
+          'clientCreatedAt',
+          'createdAt'
+        ])
+        && data.ownerId is string
+        && data.ownerId == userId
+        && isValidDateKey(data.dateKey)
+        && data.dateLabel is string
+        && data.dateLabel.size() >= 1
+        && data.dateLabel.size() <= 30
+        && data.type is string
+        && data.type in ['deposit', 'withdraw']
+        && (data.amountIdr is int || data.amountIdr is float)
+        && data.amountIdr > 0
+        && data.amountIdr <= 1000000000000
+        && data.note is string
+        && data.note.size() <= 300
+        && data.clientCreatedAt is string
+        && data.clientCreatedAt.size() >= 1
+        && data.clientCreatedAt.size() <= 40
+        && data.createdAt is timestamp;
+    }
+
+    match /users/{userId}/journal/{settingsId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(settingsId)
+        && settingsId == 'settings';
+      allow list: if isOwner(userId) && existing().ownerId == request.auth.uid;
+      allow create: if isOwner(userId) && isValidId(userId) && settingsId == 'settings'
+        && isValidJournalSettings(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isOwner(userId) && isValidId(userId) && settingsId == 'settings'
+        && isValidJournalSettings(incoming(), userId)
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['journalName', 'updatedAt'])
+          || incoming().diff(existing()).affectedKeys().hasOnly(['initialCapitalIdr', 'updatedAt'])
+          || incoming().diff(existing()).affectedKeys().hasOnly(['journalName', 'initialCapitalIdr', 'updatedAt'])
+        );
+      allow delete: if false;
+    }
+
+    match /users/{userId}/trades/{tradeId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(tradeId);
+      allow list: if isOwner(userId) && existing().ownerId == request.auth.uid;
+      allow create: if isOwner(userId) && isValidId(userId) && isValidId(tradeId)
+        && isValidTradeEntry(incoming(), userId)
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(tradeId)
+        && existing().ownerId == request.auth.uid;
+    }
+
+    match /users/{userId}/cashflows/{cashflowId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(cashflowId);
+      allow list: if isOwner(userId) && existing().ownerId == request.auth.uid;
+      allow create: if isOwner(userId) && isValidId(userId) && isValidId(cashflowId)
+        && isValidCashflowEntry(incoming(), userId)
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(cashflowId)
+        && existing().ownerId == request.auth.uid;
+    }
+  }
+}

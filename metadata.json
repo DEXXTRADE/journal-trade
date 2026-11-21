@@ -1,0 +1,6 @@
+{
+  "name": "JurnalFx Mentor",
+  "description": "Mentor dan Analis Jurnal Trading Forex pribadi dengan pemantauan risiko 1-5%, rem darurat harian 3x loss, grafik equity curve, dan evaluasi psikologi berbasis AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

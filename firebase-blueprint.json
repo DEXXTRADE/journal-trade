@@ -1,0 +1,210 @@
+{
+  "entities": {
+    "JournalSettings": {
+      "title": "JournalSettings",
+      "description": "User trading journal metadata and initial capital settings stored under /users/{userId}/journal/settings.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the journal owner."
+        },
+        "journalName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Customizable display name of the trading journal."
+        },
+        "initialCapitalIdr": {
+          "type": "number",
+          "description": "Initial trading capital in IDR (> 0)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when settings were initialized."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the latest settings update."
+        }
+      },
+      "required": ["ownerId", "journalName", "initialCapitalIdr", "createdAt", "updatedAt"]
+    },
+    "TradeEntry": {
+      "title": "TradeEntry",
+      "description": "Individual forex trade record logged by the user.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the trade owner."
+        },
+        "dateKey": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Trade execution date in YYYY-MM-DD format."
+        },
+        "session": {
+          "type": "string",
+          "enum": ["Asia", "London", "New York"],
+          "description": "Market trading session."
+        },
+        "dateLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30,
+          "description": "Formatted Indonesian display date."
+        },
+        "pair": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20,
+          "description": "Currency or commodity pair symbol (e.g. XAUUSD, EURUSD)."
+        },
+        "position": {
+          "type": "string",
+          "enum": ["Buy", "Sell"],
+          "description": "Trade direction."
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "User-typed trading strategy or setup method."
+        },
+        "riskPercent": {
+          "type": "number",
+          "description": "Risk percentage per trade (> 0 and <= 100)."
+        },
+        "outcome": {
+          "type": "string",
+          "enum": ["Win", "Loss", "BE"],
+          "description": "Trade outcome."
+        },
+        "pnlIdr": {
+          "type": "number",
+          "description": "Signed net profit or loss in IDR."
+        },
+        "note": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 500,
+          "description": "Optional setup and execution notes."
+        },
+        "clientCreatedAt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "ISO timestamp string for deterministic intra-day ordering."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the trade document was created."
+        }
+      },
+      "required": [
+        "ownerId",
+        "dateKey",
+        "session",
+        "dateLabel",
+        "pair",
+        "position",
+        "method",
+        "riskPercent",
+        "outcome",
+        "pnlIdr",
+        "note",
+        "clientCreatedAt",
+        "createdAt"
+      ]
+    },
+    "CashflowEntry": {
+      "title": "CashflowEntry",
+      "description": "Deposit or withdrawal transaction affecting total account balance.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the cashflow owner."
+        },
+        "dateKey": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Cashflow date in YYYY-MM-DD format."
+        },
+        "dateLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30,
+          "description": "Formatted Indonesian display date."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["deposit", "withdraw"],
+          "description": "Cashflow direction."
+        },
+        "amountIdr": {
+          "type": "number",
+          "description": "Positive cashflow amount in IDR (> 0)."
+        },
+        "note": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 300,
+          "description": "Optional cashflow description."
+        },
+        "clientCreatedAt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "ISO timestamp string for deterministic intra-day ordering."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the cashflow document was created."
+        }
+      },
+      "required": [
+        "ownerId",
+        "dateKey",
+        "dateLabel",
+        "type",
+        "amountIdr",
+        "note",
+        "clientCreatedAt",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/journal/{settingsId}": {
+      "schema": { "$ref": "#/entities/JournalSettings" },
+      "description": "Stores the user's journal name and initial capital settings (document ID: settings)."
+    },
+    "/users/{userId}/trades/{tradeId}": {
+      "schema": { "$ref": "#/entities/TradeEntry" },
+      "description": "Stores all individual forex trades belonging to the authenticated user."
+    },
+    "/users/{userId}/cashflows/{cashflowId}": {
+      "schema": { "$ref": "#/entities/CashflowEntry" },
+      "description": "Stores all deposit and withdrawal cashflows belonging to the authenticated user."
+    }
+  }
+}
