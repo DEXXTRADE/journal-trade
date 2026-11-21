@@ -1,6 +1,7 @@
 export type TradeDirection = 'Buy' | 'Sell';
 export type TradeOutcome = 'Win' | 'Loss' | 'BE';
 export type TradingSession = 'Asia' | 'London' | 'New York';
+export type ThemeMode = 'light' | 'dark';
 
 export interface TradeEntry {
   id: string;

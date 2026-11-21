@@ -84,25 +84,25 @@ export function EquityCurveChart({
       : equityCurve[equityCurve.length - 1];
 
   const lastPurePnl = equityCurve[equityCurve.length - 1]?.pureTradingPnLIdr ?? 0;
-  const primaryStroke = lastPurePnl >= 0 ? '#059669' : '#E11D48';
+  const primaryStroke = lastPurePnl >= 0 ? '#10B981' : '#F43F5E';
 
   return (
     <section
       aria-labelledby="heading-equity-curve"
-      className="bg-white border border-slate-200/90 rounded-xl p-6"
+      className="bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-800 rounded-xl p-6 transition-colors"
     >
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <h2 id="heading-equity-curve" className="text-base font-semibold text-slate-900">
+          <h2 id="heading-equity-curve" className="text-base font-semibold text-slate-900 dark:text-slate-100">
             Grafik Pertumbuhan Saldo (Equity Curve)
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Pergerakan ekuitas akun dan hasil murni trading dari modal awal hingga trade terakhir.
           </p>
         </div>
 
         <div
-          className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg self-start sm:self-auto"
+          className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/90 rounded-lg self-start sm:self-auto"
           role="group"
           aria-label="Mode kurva saldo"
         >
@@ -111,8 +111,8 @@ export function EquityCurveChart({
             onClick={() => setViewMode('total')}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
               viewMode === 'total'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
             }`}
           >
             Saldo &amp; Modal
@@ -122,8 +122,8 @@ export function EquityCurveChart({
             onClick={() => setViewMode('pure')}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
               viewMode === 'pure'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
             }`}
           >
             Ekuitas Murni Trading
@@ -133,46 +133,46 @@ export function EquityCurveChart({
 
       {equityCurve.length <= 1 ? (
         <div className="py-14 text-center">
-          <p className="text-sm font-medium text-slate-700">
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
             Belum ada data trade untuk digambarkan pada grafik.
           </p>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Tambahkan trade pertama Anda untuk melihat kurva pertumbuhan saldo secara real-time.
           </p>
         </div>
       ) : (
         <div className="pt-5 space-y-4">
           {/* Active Point Inspection Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-50/90 rounded-lg">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-50/90 dark:bg-slate-900/75 rounded-lg border border-transparent dark:border-slate-800/80">
             <div>
-              <div className="text-[11px] font-medium text-slate-500">Titik Transaksi</div>
-              <div className="text-sm font-semibold text-slate-900 mt-0.5 truncate">
+              <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Titik Transaksi</div>
+              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 mt-0.5 truncate">
                 {activePoint?.label ?? '-'}
               </div>
             </div>
             <div>
-              <div className="text-[11px] font-medium text-slate-500">Saldo Akun</div>
-              <div className="text-sm font-semibold font-mono tabular-nums text-slate-900 mt-0.5">
+              <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Saldo Akun</div>
+              <div className="text-sm font-semibold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-0.5">
                 {formatIdr(activePoint?.totalBalanceIdr ?? 0)}
               </div>
             </div>
             <div>
-              <div className="text-[11px] font-medium text-slate-500">
+              <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                 {isPeriodFiltered ? 'Baseline Periode' : 'Modal Disetor'}
               </div>
-              <div className="text-sm font-semibold font-mono tabular-nums text-slate-700 mt-0.5">
+              <div className="text-sm font-semibold font-mono tabular-nums text-slate-700 dark:text-slate-300 mt-0.5">
                 {formatIdr(activePoint?.depositedCapitalIdr ?? 0)}
               </div>
             </div>
             <div>
-              <div className="text-[11px] font-medium text-slate-500">Profit/Loss Murni</div>
+              <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Profit/Loss Murni</div>
               <div
                 className={`text-sm font-semibold font-mono tabular-nums mt-0.5 ${
                   (activePoint?.pureTradingPnLIdr ?? 0) > 0
-                    ? 'text-emerald-700'
+                    ? 'text-emerald-700 dark:text-emerald-400'
                     : (activePoint?.pureTradingPnLIdr ?? 0) < 0
-                    ? 'text-rose-700'
-                    : 'text-slate-700'
+                    ? 'text-rose-700 dark:text-rose-400'
+                    : 'text-slate-700 dark:text-slate-300'
                 }`}
               >
                 {formatIdr(activePoint?.pureTradingPnLIdr ?? 0, true)}
@@ -189,7 +189,7 @@ export function EquityCurveChart({
             >
               <defs>
                 <linearGradient id="equityAreaFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={primaryStroke} stopOpacity="0.16" />
+                  <stop offset="0%" stopColor={primaryStroke} stopOpacity="0.2" />
                   <stop offset="100%" stopColor={primaryStroke} stopOpacity="0.00" />
                 </linearGradient>
               </defs>
@@ -203,14 +203,14 @@ export function EquityCurveChart({
                       x2={chartDimensions.padLeft + innerWidth}
                       y1={y}
                       y2={y}
-                      stroke="#E2E8F0"
+                      className="stroke-slate-200 dark:stroke-slate-800"
                       strokeWidth="1"
                     />
                     <text
                       x={chartDimensions.padLeft - 10}
                       y={y + 4}
                       textAnchor="end"
-                      className="fill-slate-500 text-[11px] font-mono tabular-nums"
+                      className="fill-slate-500 dark:fill-slate-400 text-[11px] font-mono tabular-nums"
                     >
                       {formatIdr(tick)}
                     </text>
@@ -231,7 +231,7 @@ export function EquityCurveChart({
                     x={getX(idx)}
                     y={chartDimensions.height - 12}
                     textAnchor="middle"
-                    className="fill-slate-500 text-[10px] font-mono tabular-nums"
+                    className="fill-slate-500 dark:fill-slate-400 text-[10px] font-mono tabular-nums"
                   >
                     {pt.step === 0 ? 'Awal' : `#${pt.step}`}
                   </text>
@@ -249,7 +249,7 @@ export function EquityCurveChart({
               {/* Deposited Capital Baseline */}
               <polyline
                 fill="none"
-                stroke="#94A3B8"
+                className="stroke-slate-400 dark:stroke-slate-500"
                 strokeWidth="1.75"
                 strokeDasharray="5 4"
                 points={buildPolylinePoints((p) =>
@@ -276,12 +276,12 @@ export function EquityCurveChart({
                 );
                 const isSelected = activePoint?.step === pt.step;
 
-                let dotColor = '#0F172A';
+                let dotColor = '#0D9488';
                 if (pt.eventType === 'trade') {
                   dotColor =
-                    pt.outcome === 'Win' ? '#059669' : pt.outcome === 'Loss' ? '#E11D48' : '#D97706';
+                    pt.outcome === 'Win' ? '#10B981' : pt.outcome === 'Loss' ? '#F43F5E' : '#F59E0B';
                 } else if (pt.eventType === 'cashflow') {
-                  dotColor = '#475569';
+                  dotColor = '#64748B';
                 }
 
                 return (
@@ -292,7 +292,7 @@ export function EquityCurveChart({
                         x2={cx}
                         y1={chartDimensions.padTop}
                         y2={chartDimensions.padTop + innerHeight}
-                        stroke="#CBD5E1"
+                        className="stroke-slate-300 dark:stroke-slate-600"
                         strokeWidth="1"
                         strokeDasharray="3 3"
                       />
@@ -302,7 +302,7 @@ export function EquityCurveChart({
                       cy={cy}
                       r={isSelected ? 5.5 : 3.8}
                       fill={dotColor}
-                      stroke="#FFFFFF"
+                      className="stroke-white dark:stroke-[#111827]"
                       strokeWidth="1.5"
                     />
                     <rect
@@ -324,7 +324,7 @@ export function EquityCurveChart({
             </svg>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1 text-xs text-slate-600">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1 text-xs text-slate-600 dark:text-slate-400">
             <div className="flex items-center gap-2">
               <span
                 className="inline-block w-4 h-0.5"
@@ -339,7 +339,7 @@ export function EquityCurveChart({
             </div>
             <div className="flex items-center gap-2">
               <span
-                className="inline-block w-4 border-t-2 border-dashed border-slate-400"
+                className="inline-block w-4 border-t-2 border-dashed border-slate-400 dark:border-slate-500"
                 aria-hidden="true"
               />
               <span>

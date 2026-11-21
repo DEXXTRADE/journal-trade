@@ -19,10 +19,10 @@ export function CircuitBreakerBanner({ status }: CircuitBreakerBannerProps) {
   } = status;
 
   const containerStyle = hasAnyTriggeredDay
-    ? 'bg-rose-50/90 border-rose-200'
+    ? 'bg-rose-50/90 dark:bg-rose-950/35 border-rose-200 dark:border-rose-800/70'
     : isWarning
-    ? 'bg-amber-50/90 border-amber-200'
-    : 'bg-white border-slate-200/90';
+    ? 'bg-amber-50/90 dark:bg-amber-950/35 border-amber-200 dark:border-amber-800/70'
+    : 'bg-white dark:bg-[#111827] border-slate-200/90 dark:border-slate-800';
 
   const filledSegments = Math.min(dailyLossLimit, todayLossCount);
 
@@ -38,10 +38,10 @@ export function CircuitBreakerBanner({ status }: CircuitBreakerBannerProps) {
           <div
             className={`p-2 rounded-lg shrink-0 mt-0.5 ${
               hasAnyTriggeredDay
-                ? 'bg-rose-100 text-rose-700'
+                ? 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300'
                 : isWarning
-                ? 'bg-amber-100 text-amber-700'
-                : 'bg-emerald-50 text-emerald-700'
+                ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
+                : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400'
             }`}
           >
             {hasAnyTriggeredDay ? (
@@ -55,7 +55,7 @@ export function CircuitBreakerBanner({ status }: CircuitBreakerBannerProps) {
 
           <div className="space-y-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-semibold text-slate-900">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                 {isTodayTriggered
                   ? 'Circuit Breaker Aktif — Batas 3x Loss Hari Ini Tercapai!'
                   : hasAnyTriggeredDay
@@ -67,21 +67,21 @@ export function CircuitBreakerBanner({ status }: CircuitBreakerBannerProps) {
               <span
                 className={`text-xs font-mono tabular-nums font-semibold ${
                   isTodayTriggered
-                    ? 'text-rose-700'
+                    ? 'text-rose-700 dark:text-rose-300'
                     : isWarning
-                    ? 'text-amber-800'
-                    : 'text-slate-600'
+                    ? 'text-amber-800 dark:text-amber-300'
+                    : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
                 {todayLossCount}/{dailyLossLimit} Loss Hari Ini ({formatShortDateLabel(todayDateKey)})
               </span>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               {isTodayTriggered ? (
                 <>
                   Total kerugian hari ini mencapai{' '}
-                  <span className="font-mono tabular-nums font-semibold text-rose-700">
+                  <span className="font-mono tabular-nums font-semibold text-rose-700 dark:text-rose-300">
                     -{formatIdr(todayLossIdr)}
                   </span>
                   . Hentikan eksekusi entry baru hari ini dan evaluasi setup sebelum sesi berikutnya.
@@ -93,7 +93,7 @@ export function CircuitBreakerBanner({ status }: CircuitBreakerBannerProps) {
               ) : isWarning ? (
                 <>
                   1 loss lagi hari ini (saat ini{' '}
-                  <span className="font-mono tabular-nums font-semibold text-amber-800">
+                  <span className="font-mono tabular-nums font-semibold text-amber-800 dark:text-amber-300">
                     -{formatIdr(todayLossIdr)}
                   </span>
                   ) akan mengaktifkan rem darurat. Perketat seleksi setup atau kurangi ukuran risiko.
@@ -105,7 +105,7 @@ export function CircuitBreakerBanner({ status }: CircuitBreakerBannerProps) {
                     <>
                       {' '}
                       Loss hari ini:{' '}
-                      <span className="font-mono tabular-nums font-semibold text-rose-700">
+                      <span className="font-mono tabular-nums font-semibold text-rose-700 dark:text-rose-400">
                         -{formatIdr(todayLossIdr)}
                       </span>
                       .
@@ -117,11 +117,11 @@ export function CircuitBreakerBanner({ status }: CircuitBreakerBannerProps) {
 
             {triggeredDays.length > 0 && (
               <div className="pt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-                <span className="font-medium text-rose-800">Hari terpicu:</span>
+                <span className="font-medium text-rose-800 dark:text-rose-200">Hari terpicu:</span>
                 {triggeredDays.map((day) => (
                   <span
                     key={day.dateKey}
-                    className="font-mono tabular-nums text-rose-700 font-semibold"
+                    className="font-mono tabular-nums text-rose-700 dark:text-rose-300 font-semibold"
                   >
                     {day.dateLabel} ({day.lossCount}x Loss · -{formatIdr(day.totalLossIdr)})
                   </span>
@@ -134,14 +134,16 @@ export function CircuitBreakerBanner({ status }: CircuitBreakerBannerProps) {
         {/* 3-Segment Visual Daily Loss Meter */}
         <div className="flex items-center gap-3 shrink-0 self-start lg:self-center">
           <div className="text-right hidden sm:block">
-            <div className="text-[11px] font-medium text-slate-500">Meter Loss Harian</div>
+            <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+              Meter Loss Harian
+            </div>
             <div
               className={`text-xs font-mono tabular-nums font-semibold ${
                 isTodayTriggered
-                  ? 'text-rose-700'
+                  ? 'text-rose-700 dark:text-rose-300'
                   : isWarning
-                  ? 'text-amber-800'
-                  : 'text-slate-700'
+                  ? 'text-amber-800 dark:text-amber-300'
+                  : 'text-slate-700 dark:text-slate-200'
               }`}
             >
               {todayLossCount} / {dailyLossLimit} Slot
@@ -156,11 +158,11 @@ export function CircuitBreakerBanner({ status }: CircuitBreakerBannerProps) {
             {Array.from({ length: dailyLossLimit }).map((_, idx) => {
               const isFilled = idx < filledSegments;
               const slotColor = !isFilled
-                ? 'bg-slate-200'
+                ? 'bg-slate-200 dark:bg-slate-700'
                 : isTodayTriggered
-                ? 'bg-rose-600'
+                ? 'bg-rose-600 dark:bg-rose-500'
                 : isWarning
-                ? 'bg-amber-500'
+                ? 'bg-amber-500 dark:bg-amber-400'
                 : 'bg-rose-500';
               return (
                 <span

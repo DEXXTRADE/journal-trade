@@ -7,16 +7,8 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isVerifiedUser() {
-      return isSignedIn() && request.auth.token.email_verified == true;
-    }
-
-    function isOwner(userId) {
-      return isVerifiedUser() && request.auth.uid == userId;
+    function isMainJournal(journalId) {
+      return journalId == 'main';
     }
 
     function isValidId(id) {
@@ -35,24 +27,30 @@ service cloud.firestore {
       return val is string && val.size() == 10 && val.matches('^\\d{4}-\\d{2}-\\d{2}$');
     }
 
-    function isValidJournalSettings(data, userId) {
-      return data.keys().hasAll(['ownerId', 'journalName', 'initialCapitalIdr', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['ownerId', 'journalName', 'initialCapitalIdr', 'createdAt', 'updatedAt'])
-        && data.ownerId is string
-        && data.ownerId == userId
+    function parentJournalExists(journalId) {
+      return existsAfter(/databases/$(database)/documents/journals/$(journalId));
+    }
+
+    function isValidJournalSettings(data, journalId) {
+      return data.keys().hasAll(['journalId', 'journalName', 'initialCapitalIdr', 'theme', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['journalId', 'journalName', 'initialCapitalIdr', 'theme', 'createdAt', 'updatedAt'])
+        && data.journalId is string
+        && data.journalId == journalId
         && data.journalName is string
         && data.journalName.size() >= 1
         && data.journalName.size() <= 40
         && (data.initialCapitalIdr is int || data.initialCapitalIdr is float)
         && data.initialCapitalIdr > 0
         && data.initialCapitalIdr <= 1000000000000
+        && data.theme is string
+        && data.theme in ['light', 'dark']
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
 
-    function isValidTradeEntry(data, userId) {
+    function isValidTradeEntry(data, journalId) {
       return data.keys().hasAll([
-          'ownerId',
+          'journalId',
           'dateKey',
           'session',
           'dateLabel',
@@ -67,7 +65,7 @@ service cloud.firestore {
           'createdAt'
         ])
         && data.keys().hasOnly([
-          'ownerId',
+          'journalId',
           'dateKey',
           'session',
           'dateLabel',
@@ -81,8 +79,8 @@ service cloud.firestore {
           'clientCreatedAt',
           'createdAt'
         ])
-        && data.ownerId is string
-        && data.ownerId == userId
+        && data.journalId is string
+        && data.journalId == journalId
         && isValidDateKey(data.dateKey)
         && data.session is string
         && data.session in ['Asia', 'London', 'New York']
@@ -113,9 +111,9 @@ service cloud.firestore {
         && data.createdAt is timestamp;
     }
 
-    function isValidCashflowEntry(data, userId) {
+    function isValidCashflowEntry(data, journalId) {
       return data.keys().hasAll([
-          'ownerId',
+          'journalId',
           'dateKey',
           'dateLabel',
           'type',
@@ -125,7 +123,7 @@ service cloud.firestore {
           'createdAt'
         ])
         && data.keys().hasOnly([
-          'ownerId',
+          'journalId',
           'dateKey',
           'dateLabel',
           'type',
@@ -134,8 +132,8 @@ service cloud.firestore {
           'clientCreatedAt',
           'createdAt'
         ])
-        && data.ownerId is string
-        && data.ownerId == userId
+        && data.journalId is string
+        && data.journalId == journalId
         && isValidDateKey(data.dateKey)
         && data.dateLabel is string
         && data.dateLabel.size() >= 1
@@ -153,47 +151,50 @@ service cloud.firestore {
         && data.createdAt is timestamp;
     }
 
-    match /users/{userId}/journal/{settingsId} {
-      allow get: if isOwner(userId) && isValidId(userId) && isValidId(settingsId)
-        && settingsId == 'settings';
-      allow list: if isOwner(userId) && existing().ownerId == request.auth.uid;
-      allow create: if isOwner(userId) && isValidId(userId) && settingsId == 'settings'
-        && isValidJournalSettings(incoming(), userId)
+    match /journals/{journalId} {
+      allow get: if isMainJournal(journalId) && isValidId(journalId);
+      allow list: if false;
+      allow create: if isMainJournal(journalId) && isValidId(journalId)
+        && isValidJournalSettings(incoming(), journalId)
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
-      allow update: if isOwner(userId) && isValidId(userId) && settingsId == 'settings'
-        && isValidJournalSettings(incoming(), userId)
-        && incoming().ownerId == existing().ownerId
+      allow update: if isMainJournal(journalId) && isValidId(journalId)
+        && isValidJournalSettings(incoming(), journalId)
+        && incoming().journalId == existing().journalId
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
         && (
           incoming().diff(existing()).affectedKeys().hasOnly(['journalName', 'updatedAt'])
           || incoming().diff(existing()).affectedKeys().hasOnly(['initialCapitalIdr', 'updatedAt'])
+          || incoming().diff(existing()).affectedKeys().hasOnly(['theme', 'updatedAt'])
           || incoming().diff(existing()).affectedKeys().hasOnly(['journalName', 'initialCapitalIdr', 'updatedAt'])
+          || incoming().diff(existing()).affectedKeys().hasOnly(['journalName', 'initialCapitalIdr', 'theme', 'updatedAt'])
         );
       allow delete: if false;
-    }
 
-    match /users/{userId}/trades/{tradeId} {
-      allow get: if isOwner(userId) && isValidId(userId) && isValidId(tradeId);
-      allow list: if isOwner(userId) && existing().ownerId == request.auth.uid;
-      allow create: if isOwner(userId) && isValidId(userId) && isValidId(tradeId)
-        && isValidTradeEntry(incoming(), userId)
-        && incoming().createdAt == request.time;
-      allow update: if false;
-      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(tradeId)
-        && existing().ownerId == request.auth.uid;
-    }
+      match /trades/{tradeId} {
+        allow get: if isMainJournal(journalId) && isValidId(journalId) && isValidId(tradeId);
+        allow list: if isMainJournal(journalId) && existing().journalId == journalId;
+        allow create: if isMainJournal(journalId) && isValidId(journalId) && isValidId(tradeId)
+          && isValidTradeEntry(incoming(), journalId)
+          && incoming().createdAt == request.time
+          && parentJournalExists(journalId);
+        allow update: if false;
+        allow delete: if isMainJournal(journalId) && isValidId(journalId) && isValidId(tradeId)
+          && existing().journalId == journalId;
+      }
 
-    match /users/{userId}/cashflows/{cashflowId} {
-      allow get: if isOwner(userId) && isValidId(userId) && isValidId(cashflowId);
-      allow list: if isOwner(userId) && existing().ownerId == request.auth.uid;
-      allow create: if isOwner(userId) && isValidId(userId) && isValidId(cashflowId)
-        && isValidCashflowEntry(incoming(), userId)
-        && incoming().createdAt == request.time;
-      allow update: if false;
-      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(cashflowId)
-        && existing().ownerId == request.auth.uid;
+      match /cashflows/{cashflowId} {
+        allow get: if isMainJournal(journalId) && isValidId(journalId) && isValidId(cashflowId);
+        allow list: if isMainJournal(journalId) && existing().journalId == journalId;
+        allow create: if isMainJournal(journalId) && isValidId(journalId) && isValidId(cashflowId)
+          && isValidCashflowEntry(incoming(), journalId)
+          && incoming().createdAt == request.time
+          && parentJournalExists(journalId);
+        allow update: if false;
+        allow delete: if isMainJournal(journalId) && isValidId(journalId) && isValidId(cashflowId)
+          && existing().journalId == journalId;
+      }
     }
   }
 }

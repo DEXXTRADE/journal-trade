@@ -1,22 +1,21 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
 import {
   BarChart3,
   Check,
   Database,
   LayoutDashboard,
   Layers,
-  LogOut,
   Menu,
+  Moon,
   Pencil,
   Plus,
   ShieldAlert,
+  Sun,
   Table2,
   Trash,
   Wallet,
   X,
 } from 'lucide-react';
-import { auth, googleProvider } from './firebase';
 import {
   addCashflowInDb,
   addTradeInDb,
@@ -31,6 +30,7 @@ import {
   subscribeTrades,
   updateInitialCapitalInDb,
   updateJournalNameInDb,
+  updateThemeInDb,
 } from './services/firestoreJournal';
 import { AddTradeModal } from './components/AddTradeModal';
 import { CapitalModal } from './components/CapitalModal';
@@ -43,6 +43,7 @@ import type {
   CashflowEntry,
   DateRangeFilter,
   JournalState,
+  ThemeMode,
   TradeDirection,
   TradeEntry,
   TradeOutcome,
@@ -80,18 +81,14 @@ function sanitizeOutcome(val: string, pnl: number): TradeOutcome {
 }
 
 export default function App() {
-  const [authReady, setAuthReady] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [isSigningIn, setIsSigningIn] = useState(false);
-
+  const [theme, setTheme] = useState<ThemeMode>('light');
   const [journalState, setJournalState] = useState<JournalState>({
     journalName: DEFAULT_JOURNAL_NAME,
     initialCapitalIdr: DEFAULT_INITIAL_CAPITAL_IDR,
     trades: [],
     cashflows: [],
   });
-  const [isLoadingJournal, setIsLoadingJournal] = useState(false);
+  const [isLoadingJournal, setIsLoadingJournal] = useState(true);
   const [fatalSyncError, setFatalSyncError] = useState<Error | null>(null);
 
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
@@ -109,28 +106,18 @@ export default function App() {
   const [aiError, setAiError] = useState<string | null>(null);
   const [isMutatingDb, setIsMutatingDb] = useState(false);
 
-  // Firebase Auth listener
+  // Apply .dark class to <html> root whenever theme changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
-      setUser(nextUser);
-      setAuthReady(true);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Firestore real-time sync (strictly gated behind authenticated user)
-  useEffect(() => {
-    if (!user) {
-      setJournalState({
-        journalName: DEFAULT_JOURNAL_NAME,
-        initialCapitalIdr: DEFAULT_INITIAL_CAPITAL_IDR,
-        trades: [],
-        cashflows: [],
-      });
-      setIsLoadingJournal(false);
-      return;
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
     }
+  }, [theme]);
 
+  // Direct Firestore real-time sync (no login gate required)
+  useEffect(() => {
     let isCancelled = false;
     let unsubSettings: (() => void) | null = null;
     let unsubTrades: (() => void) | null = null;
@@ -140,7 +127,7 @@ export default function App() {
 
     const startSync = async () => {
       try {
-        await ensureJournalSettings(user.uid);
+        await ensureJournalSettings();
         if (isCancelled) return;
 
         let settingsLoaded = false;
@@ -154,13 +141,13 @@ export default function App() {
         };
 
         unsubSettings = subscribeJournalSettings(
-          user.uid,
           (settings) => {
             setJournalState((prev) => ({
               ...prev,
               journalName: settings.journalName,
               initialCapitalIdr: settings.initialCapitalIdr,
             }));
+            setTheme(settings.theme);
             settingsLoaded = true;
             markReadyIfAllLoaded();
           },
@@ -170,7 +157,6 @@ export default function App() {
         );
 
         unsubTrades = subscribeTrades(
-          user.uid,
           (trades) => {
             setJournalState((prev) => ({ ...prev, trades }));
             tradesLoaded = true;
@@ -182,7 +168,6 @@ export default function App() {
         );
 
         unsubCashflows = subscribeCashflows(
-          user.uid,
           (cashflows) => {
             setJournalState((prev) => ({ ...prev, cashflows }));
             cashflowsLoaded = true;
@@ -207,7 +192,7 @@ export default function App() {
       unsubTrades?.();
       unsubCashflows?.();
     };
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     document.title = `${journalState.journalName} — Dashboard Jurnal Trading Forex`;
@@ -238,25 +223,14 @@ export default function App() {
     [journalState.initialCapitalIdr, journalState.trades, journalState.cashflows, dateRange]
   );
 
-  const handleGoogleSignIn = async () => {
-    setIsSigningIn(true);
-    setAuthError(null);
+  const handleToggleTheme = async () => {
+    const nextTheme: ThemeMode = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
     try {
-      await signInWithPopup(auth, googleProvider);
+      await updateThemeInDb(nextTheme);
     } catch (err) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : 'Gagal masuk dengan Google. Silakan coba lagi.';
-      setAuthError(msg);
-    } finally {
-      setIsSigningIn(false);
+      setFatalSyncError(err instanceof Error ? err : new Error(String(err)));
     }
-  };
-
-  const handleSignOut = async () => {
-    setIsMobileNavOpen(false);
-    await signOut(auth);
   };
 
   const startEditingJournalName = () => {
@@ -266,12 +240,11 @@ export default function App() {
 
   const handleSaveJournalName = async (e: FormEvent) => {
     e.preventDefault();
-    if (!user) return;
     const trimmed = draftJournalName.trim().slice(0, BLUEPRINT_LIMITS.JOURNAL_NAME_MAX);
     if (!trimmed) return;
     setIsEditingName(false);
     try {
-      await updateJournalNameInDb(user.uid, trimmed);
+      await updateJournalNameInDb(trimmed);
     } catch (err) {
       setFatalSyncError(err instanceof Error ? err : new Error(String(err)));
     }
@@ -283,9 +256,8 @@ export default function App() {
   };
 
   const handleAddManualTrade = async (tradeData: Omit<TradeEntry, 'id' | 'createdAt'>) => {
-    if (!user) return;
     try {
-      await addTradeInDb(user.uid, tradeData);
+      await addTradeInDb(tradeData);
     } catch (err) {
       setFatalSyncError(err instanceof Error ? err : new Error(String(err)));
     }
@@ -296,7 +268,6 @@ export default function App() {
     imageBase64?: string;
     imageMimeType?: string;
   }): Promise<boolean> => {
-    if (!user) return false;
     setIsImportingAi(true);
     setAiError(null);
 
@@ -352,7 +323,7 @@ export default function App() {
         }
       );
 
-      await batchAddTradesInDb(user.uid, newTrades);
+      await batchAddTradesInDb(newTrades);
       return true;
     } catch (err) {
       setAiError(err instanceof Error ? err.message : 'Gagal menghubungi server.');
@@ -363,46 +334,42 @@ export default function App() {
   };
 
   const handleDeleteTrade = async (id: string) => {
-    if (!user) return;
     try {
-      await deleteTradeInDb(user.uid, id);
+      await deleteTradeInDb(id);
     } catch (err) {
       setFatalSyncError(err instanceof Error ? err : new Error(String(err)));
     }
   };
 
   const handleUpdateInitialCapital = async (amountIdr: number) => {
-    if (!user) return;
     try {
-      await updateInitialCapitalInDb(user.uid, amountIdr);
+      await updateInitialCapitalInDb(amountIdr);
     } catch (err) {
       setFatalSyncError(err instanceof Error ? err : new Error(String(err)));
     }
   };
 
   const handleAddCashflow = async (entry: Omit<CashflowEntry, 'id' | 'createdAt'>) => {
-    if (!user) return;
     try {
-      await addCashflowInDb(user.uid, entry);
+      await addCashflowInDb(entry);
     } catch (err) {
       setFatalSyncError(err instanceof Error ? err : new Error(String(err)));
     }
   };
 
   const handleDeleteCashflow = async (id: string) => {
-    if (!user) return;
     try {
-      await deleteCashflowInDb(user.uid, id);
+      await deleteCashflowInDb(id);
     } catch (err) {
       setFatalSyncError(err instanceof Error ? err : new Error(String(err)));
     }
   };
 
   const handleLoadDemoData = async () => {
-    if (!user || isMutatingDb) return;
+    if (isMutatingDb) return;
     setIsMutatingDb(true);
     try {
-      await replaceWithDemoDataInDb(user.uid);
+      await replaceWithDemoDataInDb();
       setMethodFilter('ALL');
       setDateRange({ startDate: '', endDate: '' });
     } catch (err) {
@@ -413,10 +380,10 @@ export default function App() {
   };
 
   const handleClearAllTrades = async () => {
-    if (!user || isMutatingDb) return;
+    if (isMutatingDb) return;
     setIsMutatingDb(true);
     try {
-      await clearJournalDataInDb(user.uid);
+      await clearJournalDataInDb();
       setMethodFilter('ALL');
       setDateRange({ startDate: '', endDate: '' });
     } catch (err) {
@@ -425,69 +392,6 @@ export default function App() {
       setIsMutatingDb(false);
     }
   };
-
-  if (!authReady) {
-    return (
-      <div className="min-h-screen bg-[#F4F6F9] flex items-center justify-center p-6">
-        <div className="text-sm font-medium text-slate-600">
-          Menghubungkan ke Firebase...
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-[#F4F6F9] flex items-center justify-center p-4 sm:p-6">
-        <main className="w-full max-w-md bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-sm">
-          <div className="bg-[#0B1120] px-7 py-6 text-white space-y-2">
-            <div className="text-lg font-bold tracking-tight">JurnalFx</div>
-            <h1 className="text-xl font-semibold leading-snug">
-              Dashboard Jurnal Trading Forex
-            </h1>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Seluruh catatan trade, kurva ekuitas, analisa metode terbaik &amp; terburuk, serta pemantauan Circuit Breaker 3x loss harian tersinkronisasi aman ke Firebase Firestore.
-            </p>
-          </div>
-
-          <div className="p-7 space-y-5">
-            <ul className="space-y-2.5 text-xs text-slate-600">
-              <li className="flex items-start gap-2.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-teal-600 mt-1.5 shrink-0" aria-hidden="true" />
-                <span>Sinkronisasi real-time lintas perangkat langsung ke database cloud Firestore</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-teal-600 mt-1.5 shrink-0" aria-hidden="true" />
-                <span>Peringatan visual Circuit Breaker otomatis saat terjadi 3x loss dalam sehari</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-teal-600 mt-1.5 shrink-0" aria-hidden="true" />
-                <span>Filter rentang tanggal mingguan/bulanan dan peringkat metode trading</span>
-              </li>
-            </ul>
-
-            {authError && (
-              <div
-                role="alert"
-                className="p-3 text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-lg"
-              >
-                {authError}
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={isSigningIn}
-              className="w-full py-2.5 px-4 text-sm font-semibold text-white bg-teal-700 hover:bg-teal-800 disabled:opacity-60 rounded-lg transition-colors"
-            >
-              {isSigningIn ? 'Membuka Google Sign-In...' : 'Masuk dengan Google'}
-            </button>
-          </div>
-        </main>
-      </div>
-    );
-  }
 
   const navItems: Array<{ id: ActiveView; label: string; icon: typeof LayoutDashboard }> = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -503,9 +407,9 @@ export default function App() {
       : 'Log Jurnal Transaksi';
 
   return (
-    <div className="min-h-screen bg-[#F4F6F9] text-slate-900 flex">
+    <div className="min-h-screen bg-[#F4F6F9] dark:bg-[#090E1A] text-slate-900 dark:text-slate-100 flex transition-colors duration-200">
       {/* Deep Obsidian Navy Sidebar */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-[#0B1120] text-slate-300 px-5 py-6 justify-between">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-[#0B1120] dark:bg-[#060A14] dark:border-r dark:border-slate-800/80 text-slate-300 px-5 py-6 justify-between">
         <div className="space-y-8">
           <div className="px-2">
             {isEditingName ? (
@@ -591,9 +495,9 @@ export default function App() {
           </nav>
         </div>
 
-        {/* Account Summary, Cloud Account & Data Utilities */}
+        {/* Account Summary, Theme & Data Utilities */}
         <div className="space-y-4">
-          <div className="p-4 bg-[#111827] rounded-xl space-y-2.5">
+          <div className="p-4 bg-[#111827] dark:bg-slate-900/90 border border-transparent dark:border-slate-800/80 rounded-xl space-y-2.5">
             <div className="text-[11px] font-medium text-slate-400">Ringkasan Akun</div>
             <div className="text-lg font-bold font-mono tabular-nums text-white">
               {formatIdr(overallSummary.currentBalanceIdr)}
@@ -642,24 +546,6 @@ export default function App() {
               Kosongkan
             </button>
           </div>
-
-          <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2 px-1">
-            <div className="min-w-0">
-              <div className="text-xs font-medium text-slate-200 truncate">
-                {user.displayName || 'Trader'}
-              </div>
-              <div className="text-[11px] text-slate-400 truncate">{user.email}</div>
-            </div>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              aria-label="Keluar akun"
-              title="Keluar akun"
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors shrink-0"
-            >
-              <LogOut className="w-4 h-4" aria-hidden="true" />
-            </button>
-          </div>
         </div>
       </aside>
 
@@ -671,7 +557,7 @@ export default function App() {
             onClick={() => setIsMobileNavOpen(false)}
             aria-hidden="true"
           />
-          <aside className="relative w-72 max-w-[85vw] bg-[#0B1120] text-slate-200 h-full p-5 flex flex-col justify-between z-10">
+          <aside className="relative w-72 max-w-[85vw] bg-[#0B1120] dark:bg-[#060A14] text-slate-200 h-full p-5 flex flex-col justify-between z-10">
             <div className="space-y-6">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-lg font-bold text-white truncate">
@@ -745,14 +631,6 @@ export default function App() {
                   Kosongkan
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-xs text-slate-300 bg-slate-900 hover:bg-slate-800 rounded-lg"
-              >
-                <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
-                Keluar ({user.email})
-              </button>
             </div>
           </aside>
         </div>
@@ -761,17 +639,17 @@ export default function App() {
       {/* Main Content */}
       <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
         {/* Clean 3-Zone Top Bar */}
-        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200/90 px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4">
+        <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur border-b border-slate-200/90 dark:border-slate-800 px-4 sm:px-8 py-3.5 flex items-center justify-between gap-3 transition-colors">
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               type="button"
               onClick={() => setIsMobileNavOpen(true)}
               aria-label="Buka menu navigasi"
-              className="lg:hidden p-2 -ml-2 text-slate-600 hover:text-slate-900 rounded-lg shrink-0"
+              className="lg:hidden p-2 -ml-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-lg shrink-0"
             >
               <Menu className="w-5 h-5" aria-hidden="true" />
             </button>
-            <div className="text-sm text-slate-500 truncate flex items-center gap-1.5 min-w-0">
+            <div className="text-sm text-slate-500 dark:text-slate-400 truncate flex items-center gap-1.5 min-w-0">
               {isEditingName ? (
                 <form
                   onSubmit={handleSaveJournalName}
@@ -787,7 +665,7 @@ export default function App() {
                     onChange={(e) => setDraftJournalName(e.target.value)}
                     maxLength={BLUEPRINT_LIMITS.JOURNAL_NAME_MAX}
                     required
-                    className="w-36 sm:w-44 px-2 py-1 text-xs font-semibold text-slate-900 bg-white border border-teal-600 rounded-md focus:outline-none"
+                    className="w-32 sm:w-44 px-2 py-1 text-xs font-semibold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 border border-teal-600 rounded-md focus:outline-none"
                   />
                   <button
                     type="submit"
@@ -800,35 +678,35 @@ export default function App() {
                     type="button"
                     onClick={handleCancelEditJournalName}
                     aria-label="Batal edit nama jurnal"
-                    className="p-1 text-slate-600 bg-slate-100 rounded-md shrink-0"
+                    className="p-1 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-md shrink-0"
                   >
                     <X className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </form>
               ) : (
                 <>
-                  <span className="lg:hidden font-semibold text-slate-900 truncate">
+                  <span className="lg:hidden font-semibold text-slate-900 dark:text-slate-100 truncate">
                     {journalState.journalName}
                   </span>
                   <button
                     type="button"
                     onClick={startEditingJournalName}
                     aria-label="Edit nama jurnal"
-                    className="lg:hidden p-1 text-slate-400 hover:text-slate-700 rounded-md shrink-0"
+                    className="lg:hidden p-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 rounded-md shrink-0"
                   >
                     <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </>
               )}
-              <span className="hidden lg:inline font-semibold text-slate-900">
+              <span className="hidden lg:inline font-semibold text-slate-900 dark:text-slate-100">
                 {activeViewTitle}
               </span>
-              <span className="hidden sm:inline mx-1 text-slate-300" aria-hidden="true">·</span>
-              <span className="hidden sm:inline font-mono tabular-nums text-slate-600">
+              <span className="hidden sm:inline mx-1 text-slate-300 dark:text-slate-700" aria-hidden="true">·</span>
+              <span className="hidden sm:inline font-mono tabular-nums text-slate-600 dark:text-slate-300">
                 {summary.totalTrades} Trade · Win Rate {summary.winRatePct}%
               </span>
               {summary.circuitBreaker.hasAnyTriggeredDay && (
-                <span className="hidden md:inline-flex items-center gap-1 ml-2 text-xs font-semibold text-rose-700">
+                <span className="hidden md:inline-flex items-center gap-1 ml-2 text-xs font-semibold text-rose-700 dark:text-rose-400">
                   <ShieldAlert className="w-3.5 h-3.5" aria-hidden="true" />
                   Rem Darurat Terpicu
                 </span>
@@ -836,19 +714,41 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleToggleTheme}
+              data-testid="theme-toggle-button"
+              aria-label={theme === 'dark' ? 'Ubah ke Mode Terang' : 'Ubah ke Mode Gelap'}
+              title={theme === 'dark' ? 'Ubah ke Mode Terang' : 'Ubah ke Mode Gelap'}
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap shrink-0"
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
+                  <span className="hidden sm:inline">Mode Terang</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-slate-600" aria-hidden="true" />
+                  <span className="hidden sm:inline">Mode Gelap</span>
+                </>
+              )}
+            </button>
+
             <button
               type="button"
               onClick={() => setIsCapitalOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors whitespace-nowrap shrink-0"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap shrink-0"
             >
-              <Wallet className="w-3.5 h-3.5 text-slate-600" aria-hidden="true" />
+              <Wallet className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" aria-hidden="true" />
               Modal
             </button>
+
             <button
               type="button"
               onClick={() => setIsAddTradeOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-teal-700 hover:bg-teal-800 rounded-lg transition-colors whitespace-nowrap shrink-0"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 text-xs font-medium text-white bg-teal-700 hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500 rounded-lg transition-colors whitespace-nowrap shrink-0"
             >
               <Plus className="w-3.5 h-3.5" aria-hidden="true" />
               Catat Trade
@@ -858,7 +758,7 @@ export default function App() {
 
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-7 space-y-6">
           {isLoadingJournal ? (
-            <div className="bg-white border border-slate-200/90 rounded-xl p-10 text-center text-sm text-slate-600">
+            <div className="bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-800 rounded-xl p-10 text-center text-sm text-slate-600 dark:text-slate-300">
               Menyinkronkan data jurnal dari Firestore...
             </div>
           ) : (
@@ -874,36 +774,36 @@ export default function App() {
                 aria-label="Statistik utama"
                 className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
               >
-                <div className="bg-white border border-slate-200/90 rounded-xl p-5">
-                  <div className="text-xs font-medium text-slate-500">
+                <div className="bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-800 rounded-xl p-5 transition-colors">
+                  <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
                     {summary.isPeriodFiltered ? 'Saldo Akhir Periode' : 'Saldo Akun Saat Ini'}
                   </div>
-                  <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1.5">
+                  <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-1.5">
                     {formatIdr(summary.currentBalanceIdr)}
                   </div>
-                  <div className="text-xs font-mono tabular-nums text-slate-500 mt-1.5">
+                  <div className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400 mt-1.5">
                     {summary.isPeriodFiltered
                       ? `Saldo awal periode ${formatIdr(summary.initialCapitalIdr)}`
                       : `Modal disetor ${formatIdr(summary.totalDepositedIdr)}`}
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-200/90 rounded-xl p-5">
-                  <div className="text-xs font-medium text-slate-500">
+                <div className="bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-800 rounded-xl p-5 transition-colors">
+                  <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
                     {summary.isPeriodFiltered ? 'Profit / Loss Periode' : 'Profit / Loss Bersih'}
                   </div>
                   <div
                     className={`text-2xl font-bold font-mono tabular-nums mt-1.5 ${
                       summary.pureTradingPnLIdr > 0
-                        ? 'text-emerald-700'
+                        ? 'text-emerald-700 dark:text-emerald-400'
                         : summary.pureTradingPnLIdr < 0
-                        ? 'text-rose-700'
-                        : 'text-slate-900'
+                        ? 'text-rose-700 dark:text-rose-400'
+                        : 'text-slate-900 dark:text-slate-100'
                     }`}
                   >
                     {formatIdr(summary.pureTradingPnLIdr, true)}
                   </div>
-                  <div className="text-xs font-mono tabular-nums text-slate-500 mt-1.5">
+                  <div className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400 mt-1.5">
                     Return{' '}
                     {summary.pureTradingReturnPct >= 0
                       ? `+${summary.pureTradingReturnPct}%`
@@ -912,22 +812,22 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-200/90 rounded-xl p-5">
-                  <div className="text-xs font-medium text-slate-500">Win Rate</div>
-                  <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1.5">
+                <div className="bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-800 rounded-xl p-5 transition-colors">
+                  <div className="text-xs font-medium text-slate-500 dark:text-slate-400">Win Rate</div>
+                  <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-1.5">
                     {summary.winRatePct.toFixed(1)}%
                   </div>
-                  <div className="text-xs font-mono tabular-nums text-slate-500 mt-1.5">
+                  <div className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400 mt-1.5">
                     {summary.winCount} Win · {summary.lossCount} Loss · {summary.beCount} BE
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-200/90 rounded-xl p-5">
-                  <div className="text-xs font-medium text-slate-500">Profit Factor</div>
-                  <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1.5">
+                <div className="bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-800 rounded-xl p-5 transition-colors">
+                  <div className="text-xs font-medium text-slate-500 dark:text-slate-400">Profit Factor</div>
+                  <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 mt-1.5">
                     {summary.profitFactor === null ? '∞' : summary.profitFactor.toFixed(2)}
                   </div>
-                  <div className="text-xs font-mono tabular-nums text-slate-500 mt-1.5">
+                  <div className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400 mt-1.5">
                     Avg Win {formatIdr(summary.avgWinIdr)} · Avg Loss {formatIdr(summary.avgLossIdr)}
                   </div>
                 </div>
@@ -945,46 +845,46 @@ export default function App() {
                       />
                     </div>
 
-                    <aside className="xl:col-span-4 bg-white border border-slate-200/90 rounded-xl p-6 flex flex-col justify-between space-y-5">
+                    <aside className="xl:col-span-4 bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-800 rounded-xl p-6 flex flex-col justify-between space-y-5 transition-colors">
                       <div className="space-y-4">
-                        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
                           <div>
-                            <h2 className="text-base font-semibold text-slate-900">
+                            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
                               Performa per Pair
                             </h2>
-                            <p className="text-xs text-slate-500 mt-0.5">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                               Kontribusi hasil bersih tiap instrumen
                             </p>
                           </div>
-                          <BarChart3 className="w-4 h-4 text-slate-400" aria-hidden="true" />
+                          <BarChart3 className="w-4 h-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
                         </div>
 
                         {summary.pairStats.length === 0 ? (
-                          <p className="text-xs text-slate-500 py-8 text-center">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 py-8 text-center">
                             Belum ada data pair tercatat.
                           </p>
                         ) : (
-                          <ul className="divide-y divide-slate-100">
+                          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                             {summary.pairStats.map((ps) => (
                               <li
                                 key={ps.pair}
                                 className="py-3 flex items-center justify-between gap-3"
                               >
                                 <div>
-                                  <div className="text-sm font-semibold text-slate-900">
+                                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                                     {ps.pair}
                                   </div>
-                                  <div className="text-xs text-slate-500 font-mono tabular-nums">
+                                  <div className="text-xs text-slate-500 dark:text-slate-400 font-mono tabular-nums">
                                     {ps.totalTrades} trade · WR {ps.winRatePct}%
                                   </div>
                                 </div>
                                 <div
                                   className={`text-sm font-bold font-mono tabular-nums ${
                                     ps.netPnLIdr > 0
-                                      ? 'text-emerald-700'
+                                      ? 'text-emerald-700 dark:text-emerald-400'
                                       : ps.netPnLIdr < 0
-                                      ? 'text-rose-700'
-                                      : 'text-slate-600'
+                                      ? 'text-rose-700 dark:text-rose-400'
+                                      : 'text-slate-600 dark:text-slate-400'
                                   }`}
                                 >
                                   {formatIdr(ps.netPnLIdr, true)}
@@ -997,18 +897,18 @@ export default function App() {
 
                       {/* Quick Best vs Worst Trade Highlight */}
                       {summary.bestTrade && (
-                        <div className="pt-4 border-t border-slate-100 space-y-2 text-xs">
+                        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2 text-xs">
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-500">Trade Terbaik</span>
-                            <span className="font-mono tabular-nums font-semibold text-emerald-700">
+                            <span className="text-slate-500 dark:text-slate-400">Trade Terbaik</span>
+                            <span className="font-mono tabular-nums font-semibold text-emerald-700 dark:text-emerald-400">
                               #{summary.bestTrade.no} {summary.bestTrade.pair} (
                               {formatIdr(summary.bestTrade.pnlIdr, true)})
                             </span>
                           </div>
                           {summary.worstTrade && (
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-500">Trade Terburuk</span>
-                              <span className="font-mono tabular-nums font-semibold text-rose-700">
+                              <span className="text-slate-500 dark:text-slate-400">Trade Terburuk</span>
+                              <span className="font-mono tabular-nums font-semibold text-rose-700 dark:text-rose-400">
                                 #{summary.worstTrade.no} {summary.worstTrade.pair} (
                                 {formatIdr(summary.worstTrade.pnlIdr)})
                               </span>

@@ -36,21 +36,21 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#F4F6F9] flex items-center justify-center p-6">
-          <div className="max-w-md w-full bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-            <div className="flex items-center gap-3 text-rose-700">
+        <div className="min-h-screen bg-[#F4F6F9] dark:bg-[#090E1A] flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
+            <div className="flex items-center gap-3 text-rose-700 dark:text-rose-400">
               <AlertTriangle className="w-5 h-5 shrink-0" aria-hidden="true" />
-              <h1 className="text-base font-semibold text-slate-900">
+              <h1 className="text-base font-semibold text-slate-900 dark:text-slate-100">
                 Terjadi Gangguan Sinkronisasi Data
               </h1>
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed break-words">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed break-words">
               {this.state.message}
             </p>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-slate-900 dark:bg-teal-600 hover:bg-slate-800 dark:hover:bg-teal-500 rounded-lg transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
               Muat Ulang Halaman

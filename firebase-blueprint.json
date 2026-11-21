@@ -2,15 +2,15 @@
   "entities": {
     "JournalSettings": {
       "title": "JournalSettings",
-      "description": "User trading journal metadata and initial capital settings stored under /users/{userId}/journal/settings.",
+      "description": "Trading journal metadata, initial capital, and theme preference stored at /journals/{journalId}.",
       "type": "object",
       "properties": {
-        "ownerId": {
+        "journalId": {
           "type": "string",
           "minLength": 1,
           "maxLength": 128,
           "pattern": "^[a-zA-Z0-9_\\-]+$",
-          "description": "Firebase Auth UID of the journal owner."
+          "description": "Identifier of the shared journal workspace ('main')."
         },
         "journalName": {
           "type": "string",
@@ -21,6 +21,11 @@
         "initialCapitalIdr": {
           "type": "number",
           "description": "Initial trading capital in IDR (> 0)."
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["light", "dark"],
+          "description": "UI color theme preference ('light' or 'dark')."
         },
         "createdAt": {
           "type": "string",
@@ -33,19 +38,19 @@
           "description": "Server timestamp of the latest settings update."
         }
       },
-      "required": ["ownerId", "journalName", "initialCapitalIdr", "createdAt", "updatedAt"]
+      "required": ["journalId", "journalName", "initialCapitalIdr", "theme", "createdAt", "updatedAt"]
     },
     "TradeEntry": {
       "title": "TradeEntry",
-      "description": "Individual forex trade record logged by the user.",
+      "description": "Individual forex trade record logged in the journal.",
       "type": "object",
       "properties": {
-        "ownerId": {
+        "journalId": {
           "type": "string",
           "minLength": 1,
           "maxLength": 128,
           "pattern": "^[a-zA-Z0-9_\\-]+$",
-          "description": "Firebase Auth UID of the trade owner."
+          "description": "Identifier of the parent journal ('main')."
         },
         "dateKey": {
           "type": "string",
@@ -114,7 +119,7 @@
         }
       },
       "required": [
-        "ownerId",
+        "journalId",
         "dateKey",
         "session",
         "dateLabel",
@@ -134,12 +139,12 @@
       "description": "Deposit or withdrawal transaction affecting total account balance.",
       "type": "object",
       "properties": {
-        "ownerId": {
+        "journalId": {
           "type": "string",
           "minLength": 1,
           "maxLength": 128,
           "pattern": "^[a-zA-Z0-9_\\-]+$",
-          "description": "Firebase Auth UID of the cashflow owner."
+          "description": "Identifier of the parent journal ('main')."
         },
         "dateKey": {
           "type": "string",
@@ -182,7 +187,7 @@
         }
       },
       "required": [
-        "ownerId",
+        "journalId",
         "dateKey",
         "dateLabel",
         "type",
@@ -194,17 +199,17 @@
     }
   },
   "firestore": {
-    "/users/{userId}/journal/{settingsId}": {
+    "/journals/{journalId}": {
       "schema": { "$ref": "#/entities/JournalSettings" },
-      "description": "Stores the user's journal name and initial capital settings (document ID: settings)."
+      "description": "Stores the journal name, initial capital, and theme preference (document ID: main)."
     },
-    "/users/{userId}/trades/{tradeId}": {
+    "/journals/{journalId}/trades/{tradeId}": {
       "schema": { "$ref": "#/entities/TradeEntry" },
-      "description": "Stores all individual forex trades belonging to the authenticated user."
+      "description": "Stores all individual forex trades belonging to the journal."
     },
-    "/users/{userId}/cashflows/{cashflowId}": {
+    "/journals/{journalId}/cashflows/{cashflowId}": {
       "schema": { "$ref": "#/entities/CashflowEntry" },
-      "description": "Stores all deposit and withdrawal cashflows belonging to the authenticated user."
+      "description": "Stores all deposit and withdrawal cashflows belonging to the journal."
     }
   }
 }

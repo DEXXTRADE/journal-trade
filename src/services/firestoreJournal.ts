@@ -2,10 +2,10 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDoc,
   getDocs,
   onSnapshot,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -14,7 +14,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import type { CashflowEntry, TradeEntry } from '../types/journal';
+import type { CashflowEntry, ThemeMode, TradeEntry } from '../types/journal';
 import {
   BLUEPRINT_LIMITS,
   DEFAULT_INITIAL_CAPITAL_IDR,
@@ -25,9 +25,12 @@ import {
   normalizeTradePnl,
 } from '../utils/tradingEngine';
 
+export const MAIN_JOURNAL_ID = 'main';
+
 export interface JournalSettingsDoc {
   journalName: string;
   initialCapitalIdr: number;
+  theme: ThemeMode;
 }
 
 function clampString(val: string, maxLen: number): string {
@@ -45,7 +48,6 @@ function sanitizeAmount(val: number, fallback = 1): number {
 }
 
 function buildTradePayload(
-  userId: string,
   trade: Omit<TradeEntry, 'id' | 'createdAt'>,
   clientCreatedAt: string
 ) {
@@ -65,7 +67,7 @@ function buildTradePayload(
   );
 
   return {
-    ownerId: userId,
+    journalId: MAIN_JOURNAL_ID,
     dateKey,
     session: trade.session,
     dateLabel,
@@ -81,32 +83,47 @@ function buildTradePayload(
   };
 }
 
-export async function ensureJournalSettings(userId: string): Promise<void> {
-  const settingsPath = `users/${userId}/journal/settings`;
-  const settingsRef = doc(db, 'users', userId, 'journal', 'settings');
-  try {
-    const snap = await getDoc(settingsRef);
-    if (!snap.exists()) {
-      await setDoc(settingsRef, {
-        ownerId: userId,
-        journalName: DEFAULT_JOURNAL_NAME,
-        initialCapitalIdr: DEFAULT_INITIAL_CAPITAL_IDR,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    }
-  } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, settingsPath);
+let inFlightEnsure: Promise<void> | null = null;
+
+export async function ensureJournalSettings(): Promise<void> {
+  if (inFlightEnsure) {
+    return inFlightEnsure;
   }
+
+  const settingsPath = `journals/${MAIN_JOURNAL_ID}`;
+  const settingsRef = doc(db, 'journals', MAIN_JOURNAL_ID);
+
+  inFlightEnsure = (async () => {
+    try {
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(settingsRef);
+        if (!snap.exists()) {
+          tx.set(settingsRef, {
+            journalId: MAIN_JOURNAL_ID,
+            journalName: DEFAULT_JOURNAL_NAME,
+            initialCapitalIdr: DEFAULT_INITIAL_CAPITAL_IDR,
+            theme: 'light',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        }
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, settingsPath);
+    } finally {
+      inFlightEnsure = null;
+    }
+  })();
+
+  return inFlightEnsure;
 }
 
 export function subscribeJournalSettings(
-  userId: string,
   onData: (settings: JournalSettingsDoc) => void,
   onError: (err: Error) => void
 ): Unsubscribe {
-  const path = `users/${userId}/journal/settings`;
-  const ref = doc(db, 'users', userId, 'journal', 'settings');
+  const path = `journals/${MAIN_JOURNAL_ID}`;
+  const ref = doc(db, 'journals', MAIN_JOURNAL_ID);
   return onSnapshot(
     ref,
     (snap) => {
@@ -114,6 +131,7 @@ export function subscribeJournalSettings(
         onData({
           journalName: DEFAULT_JOURNAL_NAME,
           initialCapitalIdr: DEFAULT_INITIAL_CAPITAL_IDR,
+          theme: 'light',
         });
         return;
       }
@@ -127,6 +145,7 @@ export function subscribeJournalSettings(
           typeof data.initialCapitalIdr === 'number' && data.initialCapitalIdr > 0
             ? data.initialCapitalIdr
             : DEFAULT_INITIAL_CAPITAL_IDR,
+        theme: data.theme === 'dark' ? 'dark' : 'light',
       });
     },
     (error) => {
@@ -140,12 +159,14 @@ export function subscribeJournalSettings(
 }
 
 export function subscribeTrades(
-  userId: string,
   onData: (trades: TradeEntry[]) => void,
   onError: (err: Error) => void
 ): Unsubscribe {
-  const path = `users/${userId}/trades`;
-  const q = query(collection(db, 'users', userId, 'trades'), where('ownerId', '==', userId));
+  const path = `journals/${MAIN_JOURNAL_ID}/trades`;
+  const q = query(
+    collection(db, 'journals', MAIN_JOURNAL_ID, 'trades'),
+    where('journalId', '==', MAIN_JOURNAL_ID)
+  );
   return onSnapshot(
     q,
     (snap) => {
@@ -188,14 +209,13 @@ export function subscribeTrades(
 }
 
 export function subscribeCashflows(
-  userId: string,
   onData: (cashflows: CashflowEntry[]) => void,
   onError: (err: Error) => void
 ): Unsubscribe {
-  const path = `users/${userId}/cashflows`;
+  const path = `journals/${MAIN_JOURNAL_ID}/cashflows`;
   const q = query(
-    collection(db, 'users', userId, 'cashflows'),
-    where('ownerId', '==', userId)
+    collection(db, 'journals', MAIN_JOURNAL_ID, 'cashflows'),
+    where('journalId', '==', MAIN_JOURNAL_ID)
   );
   return onSnapshot(
     q,
@@ -231,13 +251,13 @@ export function subscribeCashflows(
   );
 }
 
-export async function updateJournalNameInDb(userId: string, journalName: string): Promise<void> {
-  const path = `users/${userId}/journal/settings`;
+export async function updateJournalNameInDb(journalName: string): Promise<void> {
+  const path = `journals/${MAIN_JOURNAL_ID}`;
   const cleanName = clampString(journalName, BLUEPRINT_LIMITS.JOURNAL_NAME_MAX);
   if (!cleanName) return;
 
   try {
-    await updateDoc(doc(db, 'users', userId, 'journal', 'settings'), {
+    await updateDoc(doc(db, 'journals', MAIN_JOURNAL_ID), {
       journalName: cleanName,
       updatedAt: serverTimestamp(),
     });
@@ -246,15 +266,12 @@ export async function updateJournalNameInDb(userId: string, journalName: string)
   }
 }
 
-export async function updateInitialCapitalInDb(
-  userId: string,
-  initialCapitalIdr: number
-): Promise<void> {
-  const path = `users/${userId}/journal/settings`;
+export async function updateInitialCapitalInDb(initialCapitalIdr: number): Promise<void> {
+  const path = `journals/${MAIN_JOURNAL_ID}`;
   const safeAmount = sanitizeAmount(initialCapitalIdr, DEFAULT_INITIAL_CAPITAL_IDR);
 
   try {
-    await updateDoc(doc(db, 'users', userId, 'journal', 'settings'), {
+    await updateDoc(doc(db, 'journals', MAIN_JOURNAL_ID), {
       initialCapitalIdr: safeAmount,
       updatedAt: serverTimestamp(),
     });
@@ -263,34 +280,46 @@ export async function updateInitialCapitalInDb(
   }
 }
 
+export async function updateThemeInDb(theme: ThemeMode): Promise<void> {
+  const path = `journals/${MAIN_JOURNAL_ID}`;
+  const safeTheme: ThemeMode = theme === 'dark' ? 'dark' : 'light';
+
+  try {
+    await updateDoc(doc(db, 'journals', MAIN_JOURNAL_ID), {
+      theme: safeTheme,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
 export async function addTradeInDb(
-  userId: string,
   trade: Omit<TradeEntry, 'id' | 'createdAt'>
 ): Promise<void> {
   const tradeId = `trade-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  const path = `users/${userId}/trades/${tradeId}`;
-  const payload = buildTradePayload(userId, trade, new Date().toISOString());
+  const path = `journals/${MAIN_JOURNAL_ID}/trades/${tradeId}`;
+  const payload = buildTradePayload(trade, new Date().toISOString());
 
   try {
-    await setDoc(doc(db, 'users', userId, 'trades', tradeId), payload);
+    await setDoc(doc(db, 'journals', MAIN_JOURNAL_ID, 'trades', tradeId), payload);
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, path);
   }
 }
 
 export async function batchAddTradesInDb(
-  userId: string,
   trades: Array<Omit<TradeEntry, 'id' | 'createdAt'>>
 ): Promise<void> {
-  const path = `users/${userId}/trades`;
+  const path = `journals/${MAIN_JOURNAL_ID}/trades`;
   const batch = writeBatch(db);
   const nowMs = Date.now();
 
   trades.forEach((trade, idx) => {
     const tradeId = `imp-${nowMs}-${idx}-${Math.random().toString(36).slice(2, 6)}`;
     const clientCreatedAt = new Date(nowMs + idx * 1000).toISOString();
-    const ref = doc(db, 'users', userId, 'trades', tradeId);
-    batch.set(ref, buildTradePayload(userId, trade, clientCreatedAt));
+    const ref = doc(db, 'journals', MAIN_JOURNAL_ID, 'trades', tradeId);
+    batch.set(ref, buildTradePayload(trade, clientCreatedAt));
   });
 
   try {
@@ -300,26 +329,25 @@ export async function batchAddTradesInDb(
   }
 }
 
-export async function deleteTradeInDb(userId: string, tradeId: string): Promise<void> {
-  const path = `users/${userId}/trades/${tradeId}`;
+export async function deleteTradeInDb(tradeId: string): Promise<void> {
+  const path = `journals/${MAIN_JOURNAL_ID}/trades/${tradeId}`;
   try {
-    await deleteDoc(doc(db, 'users', userId, 'trades', tradeId));
+    await deleteDoc(doc(db, 'journals', MAIN_JOURNAL_ID, 'trades', tradeId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
 
 export async function addCashflowInDb(
-  userId: string,
   entry: Omit<CashflowEntry, 'id' | 'createdAt'>
 ): Promise<void> {
   const cfId = `cf-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  const path = `users/${userId}/cashflows/${cfId}`;
+  const path = `journals/${MAIN_JOURNAL_ID}/cashflows/${cfId}`;
   const dateKey = sanitizeDateKey(entry.dateKey);
 
   try {
-    await setDoc(doc(db, 'users', userId, 'cashflows', cfId), {
-      ownerId: userId,
+    await setDoc(doc(db, 'journals', MAIN_JOURNAL_ID, 'cashflows', cfId), {
+      journalId: MAIN_JOURNAL_ID,
       dateKey,
       dateLabel: clampString(
         entry.dateLabel || formatShortDateLabel(dateKey),
@@ -336,24 +364,32 @@ export async function addCashflowInDb(
   }
 }
 
-export async function deleteCashflowInDb(userId: string, cashflowId: string): Promise<void> {
-  const path = `users/${userId}/cashflows/${cashflowId}`;
+export async function deleteCashflowInDb(cashflowId: string): Promise<void> {
+  const path = `journals/${MAIN_JOURNAL_ID}/cashflows/${cashflowId}`;
   try {
-    await deleteDoc(doc(db, 'users', userId, 'cashflows', cashflowId));
+    await deleteDoc(doc(db, 'journals', MAIN_JOURNAL_ID, 'cashflows', cashflowId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
 
-export async function clearJournalDataInDb(userId: string): Promise<void> {
-  const tradesPath = `users/${userId}/trades`;
-  const cashflowsPath = `users/${userId}/cashflows`;
+export async function clearJournalDataInDb(): Promise<void> {
+  const tradesPath = `journals/${MAIN_JOURNAL_ID}/trades`;
+  const cashflowsPath = `journals/${MAIN_JOURNAL_ID}/cashflows`;
 
   try {
     const [tradesSnap, cashflowsSnap] = await Promise.all([
-      getDocs(query(collection(db, 'users', userId, 'trades'), where('ownerId', '==', userId))),
       getDocs(
-        query(collection(db, 'users', userId, 'cashflows'), where('ownerId', '==', userId))
+        query(
+          collection(db, 'journals', MAIN_JOURNAL_ID, 'trades'),
+          where('journalId', '==', MAIN_JOURNAL_ID)
+        )
+      ),
+      getDocs(
+        query(
+          collection(db, 'journals', MAIN_JOURNAL_ID, 'cashflows'),
+          where('journalId', '==', MAIN_JOURNAL_ID)
+        )
       ),
     ]);
 
@@ -366,13 +402,21 @@ export async function clearJournalDataInDb(userId: string): Promise<void> {
   }
 }
 
-export async function replaceWithDemoDataInDb(userId: string): Promise<void> {
-  const path = `users/${userId}/trades`;
+export async function replaceWithDemoDataInDb(): Promise<void> {
+  const path = `journals/${MAIN_JOURNAL_ID}/trades`;
   try {
     const [tradesSnap, cashflowsSnap] = await Promise.all([
-      getDocs(query(collection(db, 'users', userId, 'trades'), where('ownerId', '==', userId))),
       getDocs(
-        query(collection(db, 'users', userId, 'cashflows'), where('ownerId', '==', userId))
+        query(
+          collection(db, 'journals', MAIN_JOURNAL_ID, 'trades'),
+          where('journalId', '==', MAIN_JOURNAL_ID)
+        )
+      ),
+      getDocs(
+        query(
+          collection(db, 'journals', MAIN_JOURNAL_ID, 'cashflows'),
+          where('journalId', '==', MAIN_JOURNAL_ID)
+        )
       ),
     ]);
 
@@ -380,14 +424,14 @@ export async function replaceWithDemoDataInDb(userId: string): Promise<void> {
     tradesSnap.docs.forEach((d) => batch.delete(d.ref));
     cashflowsSnap.docs.forEach((d) => batch.delete(d.ref));
 
-    batch.update(doc(db, 'users', userId, 'journal', 'settings'), {
+    batch.update(doc(db, 'journals', MAIN_JOURNAL_ID), {
       initialCapitalIdr: DEFAULT_INITIAL_CAPITAL_IDR,
       updatedAt: serverTimestamp(),
     });
 
     for (const demo of DEFAULT_JOURNAL_TRADES) {
-      const ref = doc(db, 'users', userId, 'trades', demo.id);
-      batch.set(ref, buildTradePayload(userId, demo, demo.createdAt));
+      const ref = doc(db, 'journals', MAIN_JOURNAL_ID, 'trades', demo.id);
+      batch.set(ref, buildTradePayload(demo, demo.createdAt));
     }
 
     await batch.commit();

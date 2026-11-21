@@ -155,20 +155,23 @@ export function AddTradeModal({
     }
   };
 
+  const inputClass =
+    'w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600 dark:focus:border-teal-500';
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-black/75 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-add-trade-title"
     >
-      <div className="bg-white border border-slate-200 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-5 shadow-2xl">
-        <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+      <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <h2 id="modal-add-trade-title" className="text-lg font-semibold text-slate-900">
+            <h2 id="modal-add-trade-title" className="text-lg font-semibold text-slate-900 dark:text-slate-100">
               Catat Trade Baru
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Masukkan detail transaksi beserta metode yang digunakan untuk melacak performa strategi.
             </p>
           </div>
@@ -176,14 +179,14 @@ export function AddTradeModal({
             type="button"
             onClick={onClose}
             aria-label="Tutup dialog catat trade"
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
         <div
-          className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg w-fit"
+          className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/90 rounded-lg w-fit"
           role="tablist"
           aria-label="Metode pencatatan"
         >
@@ -194,8 +197,8 @@ export function AddTradeModal({
             onClick={() => setActiveTab('manual')}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
               activeTab === 'manual'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
             }`}
           >
             Form Jurnal
@@ -207,8 +210,8 @@ export function AddTradeModal({
             onClick={() => setActiveTab('import')}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
               activeTab === 'import'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
             }`}
           >
             Impor Catatan / Screenshot
@@ -219,7 +222,7 @@ export function AddTradeModal({
           <form onSubmit={handleManualSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="trade-date" className="block text-xs font-medium text-slate-700 mb-1">
+                <label htmlFor="trade-date" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Tanggal
                 </label>
                 <input
@@ -228,19 +231,19 @@ export function AddTradeModal({
                   value={dateKey}
                   onChange={(e) => setDateKey(e.target.value)}
                   required
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label htmlFor="trade-session" className="block text-xs font-medium text-slate-700 mb-1">
+                <label htmlFor="trade-session" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Sesi Market
                 </label>
                 <select
                   id="trade-session"
                   value={session}
                   onChange={(e) => setSession(e.target.value as TradingSession)}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600"
+                  className={inputClass}
                 >
                   <option value="Asia">Asia</option>
                   <option value="London">London</option>
@@ -249,7 +252,7 @@ export function AddTradeModal({
               </div>
 
               <div>
-                <label htmlFor="trade-pair" className="block text-xs font-medium text-slate-700 mb-1">
+                <label htmlFor="trade-pair" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Pair
                 </label>
                 <input
@@ -260,19 +263,19 @@ export function AddTradeModal({
                   maxLength={BLUEPRINT_LIMITS.PAIR_MAX}
                   placeholder="XAUUSD"
                   required
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-900 uppercase focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600"
+                  className={`${inputClass} uppercase`}
                 />
               </div>
 
               <div>
-                <label htmlFor="trade-position" className="block text-xs font-medium text-slate-700 mb-1">
+                <label htmlFor="trade-position" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Posisi
                 </label>
                 <select
                   id="trade-position"
                   value={position}
                   onChange={(e) => setPosition(e.target.value as TradeDirection)}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600"
+                  className={inputClass}
                 >
                   <option value="Buy">Buy</option>
                   <option value="Sell">Sell</option>
@@ -280,7 +283,7 @@ export function AddTradeModal({
               </div>
 
               <div className="sm:col-span-2">
-                <label htmlFor="trade-method" className="block text-xs font-medium text-slate-700 mb-1">
+                <label htmlFor="trade-method" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Metode / Strategi
                 </label>
                 <input
@@ -291,12 +294,12 @@ export function AddTradeModal({
                   maxLength={BLUEPRINT_LIMITS.METHOD_MAX}
                   placeholder="Ketik metode Anda (contoh: Breakout Structure, Pullback EMA)"
                   required
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label htmlFor="trade-risk" className="block text-xs font-medium text-slate-700 mb-1">
+                <label htmlFor="trade-risk" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Risiko (%)
                 </label>
                 <input
@@ -308,19 +311,19 @@ export function AddTradeModal({
                   value={riskPercent}
                   onChange={(e) => setRiskPercent(e.target.value)}
                   required
-                  className="w-full px-3 py-2 text-sm font-mono tabular-nums border border-slate-200 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600"
+                  className={`${inputClass} font-mono tabular-nums`}
                 />
               </div>
 
               <div>
-                <label htmlFor="trade-outcome" className="block text-xs font-medium text-slate-700 mb-1">
+                <label htmlFor="trade-outcome" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Hasil
                 </label>
                 <select
                   id="trade-outcome"
                   value={outcome}
                   onChange={(e) => setOutcome(e.target.value as TradeOutcome)}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600"
+                  className={inputClass}
                 >
                   <option value="Win">Win</option>
                   <option value="Loss">Loss</option>
@@ -329,7 +332,7 @@ export function AddTradeModal({
               </div>
 
               <div className="sm:col-span-2">
-                <label htmlFor="trade-pnl" className="block text-xs font-medium text-slate-700 mb-1">
+                <label htmlFor="trade-pnl" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Nominal Profit/Loss (Rp)
                 </label>
                 <input
@@ -341,13 +344,13 @@ export function AddTradeModal({
                   value={outcome === 'BE' ? '0' : pnlAmount}
                   onChange={(e) => setPnlAmount(e.target.value)}
                   placeholder={outcome === 'Loss' ? 'Contoh: 10000' : 'Contoh: 25000'}
-                  className="w-full px-3 py-2 text-sm font-mono tabular-nums border border-slate-200 rounded-lg bg-white text-slate-900 disabled:bg-slate-50 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600"
+                  className={`${inputClass} font-mono tabular-nums disabled:bg-slate-50 dark:disabled:bg-slate-800/50 disabled:text-slate-400 dark:disabled:text-slate-500`}
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="trade-note" className="block text-xs font-medium text-slate-700 mb-1">
+              <label htmlFor="trade-note" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Catatan Setup
               </label>
               <input
@@ -357,14 +360,14 @@ export function AddTradeModal({
                 onChange={(e) => setNote(e.target.value)}
                 maxLength={BLUEPRINT_LIMITS.NOTE_MAX}
                 placeholder="Contoh: Retest support valid di H1, eksekusi sesuai plan"
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600"
+                className={inputClass}
               />
             </div>
 
             {manualError && (
               <div
                 role="alert"
-                className="p-3 text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-lg"
+                className="p-3 text-xs text-rose-800 dark:text-rose-200 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 rounded-lg"
               >
                 {manualError}
               </div>
@@ -374,13 +377,13 @@ export function AddTradeModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors whitespace-nowrap shrink-0"
+                className="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors whitespace-nowrap shrink-0"
               >
                 Batal
               </button>
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors whitespace-nowrap shrink-0"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-slate-900 dark:bg-teal-600 hover:bg-slate-800 dark:hover:bg-teal-500 rounded-lg transition-colors whitespace-nowrap shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                 Simpan Trade
@@ -390,7 +393,7 @@ export function AddTradeModal({
         ) : (
           <form onSubmit={handleImportSubmit} className="space-y-4">
             <div>
-              <label htmlFor="import-notes" className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label htmlFor="import-notes" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                 Tempel Catatan atau Poin Transaksi
               </label>
               <textarea
@@ -404,7 +407,7 @@ export function AddTradeModal({
                 placeholder={
                   'Contoh:\n- EURUSD Buy metode Breakout Structure, risiko 1.5%, win +Rp18.000\n- XAUUSD Sell metode Counter-Trend Scalping, risiko 2%, loss -Rp12.000'
                 }
-                className="w-full px-3.5 py-2.5 text-sm text-slate-900 bg-white border border-slate-200 rounded-lg placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600"
+                className={`${inputClass} py-2.5 px-3.5`}
               />
             </div>
 
@@ -420,19 +423,19 @@ export function AddTradeModal({
                 />
                 <label
                   htmlFor="import-screenshot-upload"
-                  className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors whitespace-nowrap shrink-0"
                 >
-                  <ImagePlus className="w-4 h-4 text-slate-600" aria-hidden="true" />
+                  <ImagePlus className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
                   Lampirkan Screenshot
                 </label>
                 {imageFileName && (
-                  <div className="inline-flex items-center gap-2 text-xs text-slate-600">
+                  <div className="inline-flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
                     <span className="truncate max-w-[180px]">{imageFileName}</span>
                     <button
                       type="button"
                       onClick={clearImage}
                       aria-label="Hapus screenshot"
-                      className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                      className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded"
                     >
                       <X className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
@@ -443,7 +446,7 @@ export function AddTradeModal({
               <button
                 type="submit"
                 disabled={isImportingAi}
-                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 disabled:opacity-60 transition-colors whitespace-nowrap shrink-0"
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium text-white bg-slate-900 dark:bg-teal-600 rounded-lg hover:bg-slate-800 dark:hover:bg-teal-500 disabled:opacity-60 transition-colors whitespace-nowrap shrink-0"
               >
                 <Send className="w-3.5 h-3.5" aria-hidden="true" />
                 {isImportingAi ? 'Memproses...' : 'Ekstrak & Simpan'}
@@ -454,14 +457,14 @@ export function AddTradeModal({
               <img
                 src={imagePreviewUrl}
                 alt="Pratinjau screenshot trade"
-                className="max-h-44 rounded-lg border border-slate-200 object-contain"
+                className="max-h-44 rounded-lg border border-slate-200 dark:border-slate-700 object-contain"
               />
             )}
 
             {(importValidationError || aiError) && (
               <div
                 role="alert"
-                className="p-3 text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-lg"
+                className="p-3 text-xs text-rose-800 dark:text-rose-200 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 rounded-lg"
               >
                 {importValidationError || aiError}
               </div>

@@ -61,19 +61,19 @@ export function DateRangeBar({ dateRange, onChange }: DateRangeBarProps) {
   return (
     <section
       aria-label="Filter rentang tanggal"
-      className="bg-white border border-slate-200/90 rounded-xl px-4 py-3.5 sm:px-5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3.5"
+      className="bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-800 rounded-xl px-4 py-3.5 sm:px-5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3.5 transition-colors"
     >
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-800">
-          <Calendar className="w-4 h-4 text-teal-700 shrink-0" aria-hidden="true" />
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-100">
+          <Calendar className="w-4 h-4 text-teal-700 dark:text-teal-400 shrink-0" aria-hidden="true" />
           <span>Periode:</span>
-          <span className="font-mono tabular-nums text-slate-600 font-medium">
+          <span className="font-mono tabular-nums text-slate-600 dark:text-slate-300 font-medium">
             {rangeSummaryLabel}
           </span>
         </div>
 
         <div
-          className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded-lg"
+          className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/90 rounded-lg"
           role="group"
           aria-label="Preset rentang tanggal"
         >
@@ -93,8 +93,8 @@ export function DateRangeBar({ dateRange, onChange }: DateRangeBarProps) {
                 onClick={() => handlePreset(item.key)}
                 className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
                   isActive
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                 }`}
               >
                 {item.label}
@@ -106,7 +106,7 @@ export function DateRangeBar({ dateRange, onChange }: DateRangeBarProps) {
 
       <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
         <div className="flex items-center gap-1.5">
-          <label htmlFor="filter-date-start" className="text-xs font-medium text-slate-500">
+          <label htmlFor="filter-date-start" className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Dari
           </label>
           <input
@@ -115,12 +115,12 @@ export function DateRangeBar({ dateRange, onChange }: DateRangeBarProps) {
             value={dateRange.startDate}
             onChange={(e) => onChange({ ...dateRange, startDate: e.target.value })}
             aria-label="Tanggal mulai"
-            className="px-2.5 py-1.5 text-xs font-mono tabular-nums border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600"
+            className="px-2.5 py-1.5 text-xs font-mono tabular-nums border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600 dark:focus:border-teal-500"
           />
         </div>
 
         <div className="flex items-center gap-1.5">
-          <label htmlFor="filter-date-end" className="text-xs font-medium text-slate-500">
+          <label htmlFor="filter-date-end" className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Sampai
           </label>
           <input
@@ -129,7 +129,7 @@ export function DateRangeBar({ dateRange, onChange }: DateRangeBarProps) {
             value={dateRange.endDate}
             onChange={(e) => onChange({ ...dateRange, endDate: e.target.value })}
             aria-label="Tanggal akhir"
-            className="px-2.5 py-1.5 text-xs font-mono tabular-nums border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600"
+            className="px-2.5 py-1.5 text-xs font-mono tabular-nums border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600 dark:focus:border-teal-500"
           />
         </div>
 
@@ -137,7 +137,7 @@ export function DateRangeBar({ dateRange, onChange }: DateRangeBarProps) {
           <button
             type="button"
             onClick={() => onChange({ startDate: '', endDate: '' })}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-teal-800 bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors whitespace-nowrap shrink-0"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 rounded-lg transition-colors whitespace-nowrap shrink-0"
           >
             <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
             Reset

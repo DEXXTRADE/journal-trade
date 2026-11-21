@@ -25,14 +25,14 @@ export function MethodAnalyticsSection({
   return (
     <section
       aria-labelledby="heading-method-analytics"
-      className="bg-white border border-slate-200/90 rounded-xl p-6 space-y-6"
+      className="bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-800 rounded-xl p-6 space-y-6 transition-colors"
     >
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <h2 id="heading-method-analytics" className="text-base font-semibold text-slate-900">
+          <h2 id="heading-method-analytics" className="text-base font-semibold text-slate-900 dark:text-slate-100">
             Analisa Metode Terbaik &amp; Terburuk
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Perbandingan profitabilitas, win rate, dan profit factor di setiap metode trading Anda.
           </p>
         </div>
@@ -41,7 +41,7 @@ export function MethodAnalyticsSection({
           <button
             type="button"
             onClick={() => onSelectMethodFilter('ALL')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-teal-800 bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors whitespace-nowrap shrink-0 self-start sm:self-auto"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 rounded-lg transition-colors whitespace-nowrap shrink-0 self-start sm:self-auto"
           >
             <Filter className="w-3.5 h-3.5" aria-hidden="true" />
             Filter Aktif: {selectedMethodFilter} (Reset)
@@ -51,8 +51,10 @@ export function MethodAnalyticsSection({
 
       {methodStats.length === 0 ? (
         <div className="py-10 text-center">
-          <p className="text-sm font-medium text-slate-700">Belum ada data metode trading.</p>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            Belum ada data metode trading.
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Catat beberapa transaksi dengan label metode/strategi untuk melihat peringkat performa metode terbaik dan terburuk.
           </p>
         </div>
@@ -61,29 +63,29 @@ export function MethodAnalyticsSection({
           {/* Best vs Worst Method Spotlight */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Best Method */}
-            <div className="p-5 bg-emerald-50/60 rounded-xl space-y-3">
+            <div className="p-5 bg-emerald-50/60 dark:bg-emerald-950/30 border border-transparent dark:border-emerald-900/50 rounded-xl space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800">
-                    <ArrowUpRight className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                    <ArrowUpRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                     <span>Metode Terbaik</span>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mt-1">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mt-1">
                     {bestMethod?.method ?? '-'}
                   </h3>
                 </div>
                 <div className="text-right">
-                  <div className="text-lg font-bold font-mono tabular-nums text-emerald-700">
+                  <div className="text-lg font-bold font-mono tabular-nums text-emerald-700 dark:text-emerald-400">
                     {bestMethod ? formatIdr(bestMethod.netPnLIdr, true) : '-'}
                   </div>
-                  <div className="text-[11px] text-slate-500 font-mono tabular-nums">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono tabular-nums">
                     Rata-rata {bestMethod ? formatIdr(bestMethod.avgPnLIdr, true) : '-'}/trade
                   </div>
                 </div>
               </div>
 
               {bestMethod && (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 border-t border-emerald-200/60 text-xs text-slate-700 font-mono tabular-nums">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 border-t border-emerald-200/60 dark:border-emerald-900/50 text-xs text-slate-700 dark:text-slate-300 font-mono tabular-nums">
                   <span>{bestMethod.totalTrades} Trade ({bestMethod.winCount}W/{bestMethod.lossCount}L/{bestMethod.beCount}BE)</span>
                   <span aria-hidden="true">·</span>
                   <span>Win Rate {bestMethod.winRatePct}%</span>
@@ -98,14 +100,14 @@ export function MethodAnalyticsSection({
             </div>
 
             {/* Worst Method */}
-            <div className="p-5 bg-rose-50/60 rounded-xl space-y-3">
+            <div className="p-5 bg-rose-50/60 dark:bg-rose-950/30 border border-transparent dark:border-rose-900/50 rounded-xl space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-800">
-                    <ArrowDownRight className="w-4 h-4 text-rose-600" aria-hidden="true" />
+                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-800 dark:text-rose-300">
+                    <ArrowDownRight className="w-4 h-4 text-rose-600 dark:text-rose-400" aria-hidden="true" />
                     <span>Metode Terburuk</span>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mt-1">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mt-1">
                     {worstMethod ? worstMethod.method : 'Belum Ada Metode Rugi'}
                   </h3>
                 </div>
@@ -113,12 +115,14 @@ export function MethodAnalyticsSection({
                   <div className="text-right">
                     <div
                       className={`text-lg font-bold font-mono tabular-nums ${
-                        worstMethod.netPnLIdr < 0 ? 'text-rose-700' : 'text-slate-800'
+                        worstMethod.netPnLIdr < 0
+                          ? 'text-rose-700 dark:text-rose-400'
+                          : 'text-slate-800 dark:text-slate-200'
                       }`}
                     >
                       {formatIdr(worstMethod.netPnLIdr, true)}
                     </div>
-                    <div className="text-[11px] text-slate-500 font-mono tabular-nums">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono tabular-nums">
                       Rata-rata {formatIdr(worstMethod.avgPnLIdr, true)}/trade
                     </div>
                   </div>
@@ -126,7 +130,7 @@ export function MethodAnalyticsSection({
               </div>
 
               {worstMethod ? (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 border-t border-rose-200/60 text-xs text-slate-700 font-mono tabular-nums">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 border-t border-rose-200/60 dark:border-rose-900/50 text-xs text-slate-700 dark:text-slate-300 font-mono tabular-nums">
                   <span>{worstMethod.totalTrades} Trade ({worstMethod.winCount}W/{worstMethod.lossCount}L/{worstMethod.beCount}BE)</span>
                   <span aria-hidden="true">·</span>
                   <span>Win Rate {worstMethod.winRatePct}%</span>
@@ -138,7 +142,7 @@ export function MethodAnalyticsSection({
                   <span className="font-sans">Pair dominan: {worstMethod.topPair}</span>
                 </div>
               ) : (
-                <p className="text-xs text-slate-600 pt-2 border-t border-rose-200/60">
+                <p className="text-xs text-slate-600 dark:text-slate-400 pt-2 border-t border-rose-200/60 dark:border-rose-900/50">
                   Baru terdapat satu metode aktif dengan performa positif.
                 </p>
               )}
@@ -147,12 +151,14 @@ export function MethodAnalyticsSection({
 
           {/* Visual Performance Bar Ranking */}
           <div className="space-y-3 pt-1">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-200">
               <div className="flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
+                <Layers className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" aria-hidden="true" />
                 <span>Peringkat Profit/Loss Bersih per Metode</span>
               </div>
-              <span className="font-normal text-slate-500">Klik baris untuk memfilter jurnal</span>
+              <span className="font-normal text-slate-500 dark:text-slate-400">
+                Klik baris untuk memfilter jurnal
+              </span>
             </div>
 
             <div className="space-y-2.5">
@@ -170,15 +176,15 @@ export function MethodAnalyticsSection({
                     }
                     className={`w-full text-left p-3 rounded-lg transition-colors flex flex-col sm:flex-row sm:items-center gap-3 ${
                       isSelected
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-slate-50/90 hover:bg-slate-100 text-slate-900'
+                        ? 'bg-slate-900 dark:bg-teal-950/90 border border-transparent dark:border-teal-700/70 text-white'
+                        : 'bg-slate-50/90 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100'
                     }`}
                   >
                     <div className="sm:w-52 shrink-0">
                       <div className="text-sm font-semibold truncate">{m.method}</div>
                       <div
                         className={`text-[11px] font-mono tabular-nums ${
-                          isSelected ? 'text-slate-300' : 'text-slate-500'
+                          isSelected ? 'text-slate-300 dark:text-teal-200/80' : 'text-slate-500 dark:text-slate-400'
                         }`}
                       >
                         {m.totalTrades} trade · WR {m.winRatePct}% · PF{' '}
@@ -189,7 +195,7 @@ export function MethodAnalyticsSection({
                     <div className="flex-1 flex items-center gap-3 min-w-0">
                       <div
                         className={`flex-1 h-2.5 rounded-full overflow-hidden ${
-                          isSelected ? 'bg-slate-800' : 'bg-slate-200/80'
+                          isSelected ? 'bg-slate-800 dark:bg-teal-900/70' : 'bg-slate-200/80 dark:bg-slate-700'
                         }`}
                       >
                         <div
@@ -207,8 +213,8 @@ export function MethodAnalyticsSection({
                               ? 'text-emerald-300'
                               : 'text-rose-300'
                             : isPositive
-                            ? 'text-emerald-700'
-                            : 'text-rose-700'
+                            ? 'text-emerald-700 dark:text-emerald-400'
+                            : 'text-rose-700 dark:text-rose-400'
                         }`}
                       >
                         {formatIdr(m.netPnLIdr, true)}
@@ -221,10 +227,10 @@ export function MethodAnalyticsSection({
           </div>
 
           {/* Detailed Method Table */}
-          <div className="overflow-x-auto pt-2 border-t border-slate-100">
+          <div className="overflow-x-auto pt-2 border-t border-slate-100 dark:border-slate-800">
             <table className="w-full text-left border-collapse" data-testid="method-analytics-table">
               <thead>
-                <tr className="border-b border-slate-200 text-xs font-semibold text-slate-500">
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-500 dark:text-slate-400">
                   <th scope="col" className="py-2.5 pr-3 whitespace-nowrap">Metode / Strategi</th>
                   <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">Trade</th>
                   <th scope="col" className="py-2.5 px-3 text-right whitespace-nowrap">W / L / BE</th>
@@ -234,46 +240,46 @@ export function MethodAnalyticsSection({
                   <th scope="col" className="py-2.5 pl-3 text-right whitespace-nowrap">Net Profit/Loss</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-[13px]">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-[13px]">
                 {methodStats.map((m, idx) => {
                   const isBest = idx === 0 && m.netPnLIdr > 0;
                   const isWorst =
                     worstMethod && worstMethod.method === m.method && m.netPnLIdr < 0;
 
                   return (
-                    <tr key={m.method} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-2.5 pr-3 font-medium text-slate-900 whitespace-nowrap">
+                    <tr key={m.method} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="py-2.5 pr-3 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
                         <span>{m.method}</span>
                         {isBest && (
-                          <span className="ml-2 text-[11px] font-semibold text-emerald-700">
+                          <span className="ml-2 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
                             Terbaik
                           </span>
                         )}
                         {isWorst && (
-                          <span className="ml-2 text-[11px] font-semibold text-rose-700">
+                          <span className="ml-2 text-[11px] font-semibold text-rose-700 dark:text-rose-400">
                             Terburuk
                           </span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-700 whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-700 dark:text-slate-300 whitespace-nowrap">
                         {m.totalTrades}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-600 whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-600 dark:text-slate-400 whitespace-nowrap">
                         {m.winCount} / {m.lossCount} / {m.beCount}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-800 whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-800 dark:text-slate-200 whitespace-nowrap">
                         {m.winRatePct.toFixed(1)}%
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-800 whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-slate-800 dark:text-slate-200 whitespace-nowrap">
                         {m.profitFactor === null ? '∞' : m.profitFactor.toFixed(2)}
                       </td>
                       <td
                         className={`py-2.5 px-3 text-right font-mono tabular-nums whitespace-nowrap ${
                           m.avgPnLIdr > 0
-                            ? 'text-emerald-700'
+                            ? 'text-emerald-700 dark:text-emerald-400'
                             : m.avgPnLIdr < 0
-                            ? 'text-rose-700'
-                            : 'text-slate-600'
+                            ? 'text-rose-700 dark:text-rose-400'
+                            : 'text-slate-600 dark:text-slate-400'
                         }`}
                       >
                         {formatIdr(m.avgPnLIdr, true)}
@@ -281,10 +287,10 @@ export function MethodAnalyticsSection({
                       <td
                         className={`py-2.5 pl-3 text-right font-mono tabular-nums font-semibold whitespace-nowrap ${
                           m.netPnLIdr > 0
-                            ? 'text-emerald-700'
+                            ? 'text-emerald-700 dark:text-emerald-400'
                             : m.netPnLIdr < 0
-                            ? 'text-rose-700'
-                            : 'text-slate-700'
+                            ? 'text-rose-700 dark:text-rose-400'
+                            : 'text-slate-700 dark:text-slate-300'
                         }`}
                       >
                         {formatIdr(m.netPnLIdr, true)}
